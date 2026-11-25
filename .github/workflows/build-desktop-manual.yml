@@ -1,0 +1,107 @@
+name: Build Desktop (Manual)
+
+# Manual only: Actions -> Build Desktop (Manual) -> Run workflow,
+# then pick the branch in the "Use workflow from" dropdown (or fill in `ref`).
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch / tag / commit to build (empty = the branch selected in the Run workflow menu)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows x64 (NSIS installer)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Installers are unsigned; skip certificate discovery.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies and build shared packages
+        run: npm run setup
+
+      - name: Build renderer
+        run: npm run build:web
+
+      # Without a target argument the upstream script only prepares
+      # packages/bruno-electron/web (no packaging step).
+      - name: Prepare renderer for packaging
+        run: bash ./scripts/build-electron.sh
+
+      - name: Package installer (x64)
+        working-directory: packages/bruno-electron
+        run: npx electron-builder --win --config ../../scripts/electron-builder-config.manual.js
+
+      - name: Zip unpacked app (portable directory)
+        shell: powershell
+        working-directory: packages/bruno-electron/out
+        run: Compress-Archive -Path win-unpacked -DestinationPath bruno-win-unpacked-x64.zip -Force
+
+      - name: Upload installer and portable directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: bruno-windows-x64
+          path: |
+            packages/bruno-electron/out/*.exe
+            packages/bruno-electron/out/bruno-win-unpacked-x64.zip
+          if-no-files-found: error
+
+  linux:
+    name: Linux x64 (AppImage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies and build shared packages
+        run: npm run setup
+
+      - name: Build renderer
+        run: npm run build:web
+
+      # Without a target argument the upstream script only prepares
+      # packages/bruno-electron/web (no packaging step).
+      - name: Prepare renderer for packaging
+        run: bash ./scripts/build-electron.sh
+
+      - name: Package AppImage (x64)
+        working-directory: packages/bruno-electron
+        run: npx electron-builder --linux AppImage --config ../../scripts/electron-builder-config.manual.js
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: bruno-linux-x64-appimage
+          path: packages/bruno-electron/out/*.AppImage
+          if-no-files-found: error
