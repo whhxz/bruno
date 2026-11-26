@@ -87,7 +87,8 @@ npx electron-builder --linux AppImage --config ../../scripts/electron-builder-co
 3. `Actions → Build Desktop (Manual) → Run workflow`
    - 分支：用 **"Use workflow from"** 下拉选择
    - 也可在 `ref` 输入框填任意分支/tag/commit（留空即用下拉所选分支）
-4. 两个 job 并行执行，完成后在 run 页面下载 Artifacts：
+   - 平台：`platform` 选择 `both`（默认）/ `windows` / `linux`；未选中的 job 会直接跳过
+4. 选中的 job 并行执行，完成后在 run 页面下载 Artifacts：
    - `bruno-windows-x64`（NSIS `.exe` + `bruno-win-unpacked-x64.zip` 免安装目录版）
    - `bruno-linux-x64-appimage`（`.AppImage`）
 
