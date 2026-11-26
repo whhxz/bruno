@@ -13,7 +13,7 @@
 | 文件 | 作用 |
 | --- | --- |
 | `.github/workflows/build-desktop-manual.yml` | 手动 GitHub Actions：两个并行 job（Windows / Linux），构建并上传 artifact |
-| `scripts/electron-builder-config.manual.js` | 包装上游 `packages/bruno-electron/electron-builder-config.js`：继承全部配置，只把各平台 target 的 `arch` 收窄为 `x64`（默认），可用 `BRUNO_BUILD_ARCH=x64,arm64` 覆盖 |
+| `scripts/electron-builder-config.manual.js` | 包装上游 `packages/bruno-electron/electron-builder-config.js`：继承全部配置，只把各平台 target 的 `arch` 收窄为 `x64`（默认），可用 `BRUNO_BUILD_ARCH=x64,arm64` 覆盖；并把 AppImage 固定为静态 runtime（`toolsets.appimage=1.0.3`，不依赖宿主 `libfuse.so.2`） |
 
 除以上两个新增文件外，不修改上游任何文件。
 
@@ -75,6 +75,7 @@ npx electron-builder --linux AppImage --config ../../scripts/electron-builder-co
 注意事项：
 
 - 安装包**未签名**：Windows 会弹 SmartScreen 提示；AppImage 需要 `chmod +x` 后运行
+- AppImage 使用静态 runtime：运行时**不需要**宿主的 `libfuse.so.2`（仍需要内核 FUSE 支持）；压缩算法为 `zstd`
 - 需要 arm64 时：`BRUNO_BUILD_ARCH=x64,arm64`（Windows arm64 需要对应工具集）
 
 ---
@@ -110,6 +111,7 @@ npx electron-builder --linux AppImage --config ../../scripts/electron-builder-co
 | 脚本名 `setup`、`build:web` | 根 `package.json` | 同步修改 workflow |
 | Node 版本 | `.nvmrc` | workflow 自动读取，无需改 |
 | `electron-builder` 版本与 CLI 参数 | `packages/bruno-electron/package.json` | 若 CLI 参数变化（如 `--config` 行为），调整 workflow 打包命令 |
+| 支持顶层 `toolsets` 配置 | `electron-builder`（当前 `^26.18.0`） | 若上游降级到不支持 `toolsets` 的版本，去掉 wrapper 里的 `toolsets` |
 
 ### 4.3 同步后的验证清单
 
@@ -130,6 +132,7 @@ npx electron-builder --linux AppImage --config ../../scripts/electron-builder-co
 | 打包时 arm64 原生模块重建失败（如 `MSB8020` 缺 v145 工具集） | 本机工具链缺 arm64/对应 toolset | 本方案只构建 x64（wrapper 已限制 arch）；确需 arm64 时装齐 toolchain |
 | electron-builder 下载 Electron/NSIS 很慢 | 网络 | 设置 `ELECTRON_MIRROR`、`ELECTRON_BUILDER_BINARIES_MIRROR`（CI 上默认无需） |
 | CI 打包步报 `GitHub Personal Access Token is not set ... GH_TOKEN`（本地正常） | CI 环境下 electron-builder 未显式指定 publish 时默认隐式发布（`onTagOrDraft`），并按 `package.json` 的 `repository` 推断出 GitHub provider，打包后写 update info 时尝试上传 | 打包命令加 `--publish never`（workflow 已加）；**不要**配置 `GH_TOKEN` |
+| AppImage 启动报 `dlopen(): error loading libfuse.so.2` | 旧产物用的是 FUSE2 runtime；或本机缺少 `libfuse.so.2`（Fedora 默认只有 fuse3） | 用当前配置重新构建（已启用静态 runtime）；本机可 `sudo dnf install fuse-libs`；临时可 `APPIMAGE_EXTRACT_AND_RUN=1 ./xxx.AppImage` |
 
 ---
 

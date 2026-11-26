@@ -17,4 +17,9 @@ for (const platform of ['win', 'linux', 'mac']) {
   }
 }
 
-module.exports = { ...base, ...overrides };
+module.exports = {
+  ...base,
+  ...overrides,
+  // 1.0.3 = static AppImage runtime: no host libfuse.so.2 needed (default from v27).
+  toolsets: { appimage: '1.0.3' }
+};
