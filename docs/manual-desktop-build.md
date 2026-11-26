@@ -129,6 +129,7 @@ npx electron-builder --linux AppImage --config ../../scripts/electron-builder-co
 | `npm run dev` 不自动拉起 Electron | `scripts/dev.js` 端口探测对 rsbuild 彩色输出匹配失败（上游问题，未修改） | `BRUNO_DEV_PORT=3000 npm run dev:electron` 手动启动 |
 | 打包时 arm64 原生模块重建失败（如 `MSB8020` 缺 v145 工具集） | 本机工具链缺 arm64/对应 toolset | 本方案只构建 x64（wrapper 已限制 arch）；确需 arm64 时装齐 toolchain |
 | electron-builder 下载 Electron/NSIS 很慢 | 网络 | 设置 `ELECTRON_MIRROR`、`ELECTRON_BUILDER_BINARIES_MIRROR`（CI 上默认无需） |
+| CI 打包步报 `GitHub Personal Access Token is not set ... GH_TOKEN`（本地正常） | CI 环境下 electron-builder 未显式指定 publish 时默认隐式发布（`onTagOrDraft`），并按 `package.json` 的 `repository` 推断出 GitHub provider，打包后写 update info 时尝试上传 | 打包命令加 `--publish never`（workflow 已加）；**不要**配置 `GH_TOKEN` |
 
 ---
 

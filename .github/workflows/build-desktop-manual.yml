@@ -49,7 +49,7 @@ jobs:
 
       - name: Package installer (x64)
         working-directory: packages/bruno-electron
-        run: npx electron-builder --win --config ../../scripts/electron-builder-config.manual.js
+        run: npx electron-builder --win --publish never --config ../../scripts/electron-builder-config.manual.js
 
       - name: Zip unpacked app (portable directory)
         shell: powershell
@@ -97,7 +97,7 @@ jobs:
 
       - name: Package AppImage (x64)
         working-directory: packages/bruno-electron
-        run: npx electron-builder --linux AppImage --config ../../scripts/electron-builder-config.manual.js
+        run: npx electron-builder --linux AppImage --publish never --config ../../scripts/electron-builder-config.manual.js
 
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
